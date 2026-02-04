@@ -1,22 +1,22 @@
 #!/bin/bash
 
 echo "========================================"
-echo "  家庭深度对话卡牌游戏 - 启动中..."
+echo "  Deep Conversation Card Game - Starting..."
 echo "========================================"
 echo ""
 
-# 切换到脚本所在目录
+# Move to script directory
 cd "$(dirname "$0")"
 
-echo "正在启动服务器..."
-echo "服务器地址: http://localhost:7680"
+echo "Starting server..."
+echo "Server URL: http://localhost:7680"
 echo ""
-echo "按 Ctrl+C 可停止服务器"
+echo "Press Ctrl+C to stop the server"
 echo "========================================"
 echo ""
 
-# 延迟2秒后打开浏览器
+# Open browser after 2 seconds
 (sleep 2 && open "http://localhost:7680") &
 
-# 启动Python服务器
+# Start Python server
 python3 server.py

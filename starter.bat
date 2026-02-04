@@ -1,18 +1,18 @@
 @echo off
 chcp 65001 >nul
-title 家庭深度对话卡牌游戏
+title Deep Conversation Card Game
 
 echo ========================================
-echo   家庭深度对话卡牌游戏 - 启动中...
+echo   Deep Conversation Card Game - Starting...
 echo ========================================
 echo.
 
 cd /d "%~dp0"
 
-echo 正在启动服务器...
-echo 服务器地址: http://localhost:7680
+echo Starting server...
+echo Server URL: http://localhost:7680
 echo.
-echo 按 Ctrl+C 可停止服务器
+echo Press Ctrl+C to stop the server
 echo ========================================
 echo.
 

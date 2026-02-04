@@ -1,31 +1,31 @@
 # CardGame
 
-这是一个基于浏览器的卡牌小游戏。
+A browser-based card game (frontend + simple backend).
 
-包含文件：
-- `card-game.html`：主页面（单文件静态版）。
-- `card-game-modular.html`：模块化页面（可作为 SPA 入口）。
-- `card-game.js`：前端交互脚本。
-- `card-game.css`：样式表。
-- `server.py`：可选的后端示例，用于本地运行（Flask/simple HTTP）。
-- `Dockerfile`：用于构建容器镜像（可选）。
+Files included:
+- `card-game.html`: Main page (single-file static version).
+- `card-game-modular.html`: Modular page (can be used as SPA entry).
+- `card-game.js`: Frontend interaction script.
+- `card-game.css`: Styles.
+- `server.py`: Optional backend for local runs (Flask/simple HTTP).
+- `Dockerfile`: Optional container build.
 
-## 快速运行（静态文件）：
-直接在浏览器中打开 `card-game.html`。（由于SSL证书原因，无法使用AI总结的功能）
+Quick start (static):
+1. Open `card-game.html` in your browser.
+   - Note: AI summary requires the backend due to HTTPS/API restrictions.
 
-## 快速运行（使用 Python 后端）：
+Quick start (Python server):
 ```bash
 cd CardGame
 python3 server.py
-# 然后打开 http://localhost:8080 （或 server.py 中指定的端口）
+# Then open http://localhost:8080 (or the port in server.py)
 ```
 
-使用 Docker（可选）：
+Docker (optional):
 ```bash
 cd CardGame
 docker build -t cardgame .
 docker run -p 8080:8080 cardgame
 ```
 
-license：MIT
-
+License: MIT

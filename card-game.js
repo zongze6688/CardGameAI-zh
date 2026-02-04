@@ -1,8 +1,8 @@
-// ========== API 配置 ==========
+// ========== API Config ==========
 const API_URL = "/api/chat";
 const MODEL = "Qwen/Qwen2.5-72B-Instruct";
 
-// ========== 游戏状态 ==========
+// ========== Game State ==========
 let players = [];
 let currentPlayerIndex = 0;
 let round = 1;
@@ -16,102 +16,102 @@ let wishCardGiven = false;
 let confirmedPlayers = [];
 let cardSelectingPlayer = 0;
 let selectedFunctionCards = [];
-let playerEmotions = {}; // 存储AI分析的玩家心理状态
+let playerEmotions = {}; // Stores AI-analyzed player emotions
 let lastAIAnalysis = null;
 let analysisInProgress = false;
-let selectedWildType = null; // 万能牌选择的类型
-let lastPlayerIndex = -1; // 上一个玩家索引，用于判断是否需要显示切换动画
+let selectedWildType = null; // Selected wild card type
+let lastPlayerIndex = -1; // Used to determine whether to show switch animation
 
 const avatars = ['&#128104;', '&#128105;', '&#129489;', '&#128116;', '&#128117;', '&#129490;'];
 const avatarColors = ['#FFE0B2', '#F8BBD9', '#B3E5FC', '#C8E6C9', '#E1BEE7', '#FFCCBC'];
-const defaultNames = ['爸爸', '妈妈', '我', '爷爷', '奶奶', '弟弟/妹妹'];
+const defaultNames = ['Dad', 'Mom', 'Me', 'Grandpa', 'Grandma', 'Brother/Sister'];
 
 const functionCardTypes = ['reverse', 'explain', 'avoid', 'wild'];
 
 const cardTypes = {
-  share: { name: '分享牌', icon: '&#128172;', desc: '回答AI随机生成的问题', class: 'card-share' },
-  evaluate: { name: '评价牌', icon: '&#128173;', desc: '说出对方2个优点+2个缺点', class: 'card-evaluate' },
-  wish: { name: '心愿牌', icon: '&#127775;', desc: '说出并记录一个心愿', class: 'card-wish' },
-  reverse: { name: '反转牌', icon: '&#128260;', desc: '让出牌人回答问题', class: 'card-reverse' },
-  explain: { name: '解释牌', icon: '&#128226;', desc: '要求下家进行补充澄清', class: 'card-explain' },
-  avoid: { name: '回避牌', icon: '&#128584;', desc: '选择不回答当前问题', class: 'card-avoid' },
-  wild: { name: '万能牌', icon: '&#10024;', desc: '变成一张牌自己使用', class: 'card-wild' }
+  share: { name: 'Share Card', icon: '&#128172;', desc: 'Answer an AI-generated question', class: 'card-share' },
+  evaluate: { name: 'Evaluate Card', icon: '&#128173;', desc: 'Give 2 strengths + 2 weaknesses', class: 'card-evaluate' },
+  wish: { name: 'Wish Card', icon: '&#127775;', desc: 'Say and record a wish', class: 'card-wish' },
+  reverse: { name: 'Reverse Card', icon: '&#128260;', desc: 'Make the card player answer', class: 'card-reverse' },
+  explain: { name: 'Clarify Card', icon: '&#128226;', desc: 'Ask the next player to clarify', class: 'card-explain' },
+  avoid: { name: 'Avoid Card', icon: '&#128584;', desc: 'Skip answering the current question', class: 'card-avoid' },
+  wild: { name: 'Wild Card', icon: '&#10024;', desc: 'Transform into a card and use it', class: 'card-wild' }
 };
 
-// 深度问题话题
+// Deep question topics
 const topicTrees = {
   happiness: {
-    name: '快乐时刻',
+    name: 'Happy Moments',
     questions: [
-     '最近吃到的哪一样东西，让你觉得味蕾被治愈了？',
-      '最近一次觉得“被好好爱着”，是因为什么事？',
-      '你有没有一个专属的 “快乐小开关”，一碰就能开心一点？'
+      'What did you eat recently that felt like comfort?',
+      'When was the last time you felt truly cared for, and why?',
+      'Do you have a small "joy switch" that always lifts your mood?'
     ],
     counter : 0
    },
   gratitude: {
-    name: '感恩之心',
+    name: 'Gratitude',
     questions: [
-      '今年最想感谢的人是谁？',
-      '最近有没有遇到过一些温柔的小帮助？',
-      '有没有一个小地方，去到那里会让你觉得特别放松、有归属感？'
+      'Who do you most want to thank this year?',
+      'Have you received any gentle help lately?',
+      'Is there a place that makes you feel relaxed and at home?'
     ],
     counter : 0
   },
   family: {
-    name: '家的温度',
+    name: 'Family Warmth',
     questions: [
-      '家人的哪一个小优点，是你一直以来都很欣赏的？',
-      '你觉得家人表达关心的方式，哪一点最贴合你的心意？',
-      '有没有一句想对家人说，却还没来得及说的温柔话？'
+      'What small strength of a family member do you really admire?',
+      'Which way your family shows care feels most meaningful to you?',
+      'Is there something kind you want to say but have not yet?'
     ],
     counter : 0
   },
   growth: {
-    name: '成长领悟',
+    name: 'Growth & Insight',
     questions: [
-      '最近最大的收获或成长是什么？',
-     '最近一次发现自己的小进步，是在什么时刻？',
-       '有没有一些小事，做完后让你觉得很有成就感？'
+      'What has been your biggest recent growth or takeaway?',
+      'When did you notice a small improvement in yourself?',
+      'What small thing recently made you feel accomplished?'
     ],
     counter : 0
   },
   unsaid: {
-    name: '未说出口的话',
+    name: 'Unsaid Words',
     questions: [
-       '有没有一句想对家人说，却还没来得及说的温柔话？',
-      '平时是什么会让你一直难以说出某句话？',
-      '趁现在，你愿意试着说出来一句你未曾启齿的话吗？'
+      'Is there something you want to say to your family but have not yet?',
+      'What usually makes it hard to say certain things?',
+      'Right now, would you like to say something you have not dared to?'
     ],
     counter : 0
       },
    pressure: {
-    name: '压力与释放',
+    name: 'Pressure & Release',
      questions: [
-       '最近让你感到压力最大的事是什么？',
-          '如果给自己的当下状态打个温柔的标签，你会选什么？',
-       '这阵子，你的情绪里最常出现的一种温柔感受是什么？'
+       'What has been the biggest source of stress lately?',
+       'If you gave your current state a gentle label, what would it be?',
+       'What gentle feeling shows up most often in your emotions lately?'
     ],
         counter : 0
   }
 };
 
-// ========== 页面导航 ==========
+// ========== Navigation ==========
 function showPage(pageId) {
-  console.log('切换到页面:', pageId);
+  console.log('Switching to page:', pageId);
   
-  // 隐藏所有页面
+  // Hide all pages
   document.querySelectorAll('.page').forEach(page => {
     page.classList.remove('active');
   });
   
-  // 显示目标页面
+  // Show target page
   const nextPage = document.getElementById('page-' + pageId);
   if (nextPage) {
     nextPage.classList.add('active');
-    console.log('页面已激活:', pageId);
+    console.log('Page activated:', pageId);
   } else {
-    console.error('找不到页面:', pageId);
+    console.error('Page not found:', pageId);
   }
 }
 
@@ -124,10 +124,10 @@ function goToRules() {
 function goToCardSelect() {
   console.log('goToCardSelect called, confirmedPlayers:', confirmedPlayers.length, 'players:', players.length);
   if (confirmedPlayers.length !== players.length) {
-    console.log('条件不满足，返回');
+    console.log('Not all players confirmed, aborting');
     return;
   }
-  // 跳过功能牌选择页面，直接开始游戏（随机发牌）
+  // Skip function-card selection page and start game
   startGame();
 }
 function goToGame() { showPage('game'); }
@@ -136,7 +136,7 @@ function goToSummary() {
   generateAISummary();
 }
 
-// ========== 设置页逻辑 ==========
+// ========== Setup Page ==========
 function initPlayerInputs() {
   const container = document.getElementById('player-inputs');
   container.innerHTML = '';
@@ -145,7 +145,7 @@ function initPlayerInputs() {
     container.innerHTML += `
       <div class="player-input">
         <div class="player-avatar" style="background: ${avatarColors[i]}">${avatars[i]}</div>
-        <input type="text" id="player${i+1}" placeholder="玩家${i+1}（如：${defaultNames[i]}）">
+        <input type="text" id="player${i+1}" placeholder="Player ${i+1} (e.g., ${defaultNames[i]})">
       </div>
     `;
   }
@@ -155,7 +155,7 @@ function setPlayerCount(count) {
   playerCount = count;
   document.querySelectorAll('.count-btn').forEach(btn => {
     btn.classList.remove('active');
-    if (btn.textContent === count + '人') btn.classList.add('active');
+    if (Number(btn.dataset.count) === count) btn.classList.add('active');
   });
   initPlayerInputs();
 }
@@ -164,7 +164,7 @@ function initPlayers() {
   players = [];
   for (let i = 0; i < playerCount; i++) {
     const input = document.getElementById(`player${i+1}`);
-    const name = input ? input.value.trim() || `玩家${i+1}` : `玩家${i+1}`;
+    const name = input ? input.value.trim() || `Player ${i+1}` : `Player ${i+1}`;
     players.push({
       name: name,
       avatar: avatars[i],
@@ -173,11 +173,11 @@ function initPlayers() {
       functionCards: [],
       active: true
     });
-    playerEmotions[name] = { emoji: '&#128566;', word: '等待' };
+    playerEmotions[name] = { emoji: '&#128566;', word: 'Waiting' };
   }
 }
 
-// ========== 入游须知页逻辑 ==========
+// ========== Rules Page ==========
 function renderConfirmAvatars() {
   const container = document.getElementById('confirm-avatars');
   container.innerHTML = players.map((p, i) => `
@@ -192,10 +192,10 @@ function renderConfirmAvatars() {
   const btn = document.getElementById('btn-to-cards');
   if (confirmedPlayers.length === players.length) {
     btn.disabled = false;
-    btn.textContent = '全员已确认，开始游戏';
+    btn.textContent = 'All confirmed, start game';
   } else {
     btn.disabled = true;
-    btn.textContent = `还需 ${players.length - confirmedPlayers.length} 人确认`;
+    btn.textContent = `${players.length - confirmedPlayers.length} more to confirm`;
   }
 }
 
@@ -208,7 +208,7 @@ function confirmPlayer(index) {
   renderConfirmAvatars();
 }
 
-// ========== 功能牌选择页逻辑 ==========
+// ========== Function Card Selection ==========
 function renderCardSelection() {
   const player = players[cardSelectingPlayer];
   selectedFunctionCards = [];
@@ -216,9 +216,9 @@ function renderCardSelection() {
   document.getElementById('selector-avatar').innerHTML = player.avatar;
   document.getElementById('selector-avatar').style.background = player.color;
   document.getElementById('selector-name').textContent = player.name;
-  document.getElementById('card-select-hint').textContent = `${player.name}，请选择2张功能牌`;
+  document.getElementById('card-select-hint').textContent = `${player.name}, pick 2 function cards`;
   
-  // 先渲染功能牌
+  // Render function cards first
   const grid = document.getElementById('function-cards-grid');
   grid.innerHTML = functionCardTypes.map(type => {
     const card = cardTypes[type];
@@ -231,7 +231,7 @@ function renderCardSelection() {
     `;
   }).join('');
   
-  // 然后再更新进度（此时 DOM 元素已存在）
+  // Update progress after DOM elements exist
   updateCardSelectProgress();
 }
 
@@ -250,11 +250,11 @@ function toggleFunctionCard(type) {
 }
 
 function updateCardSelectProgress() {
-  document.getElementById('selector-progress').textContent = `已选 ${selectedFunctionCards.length}/2`;
+  document.getElementById('selector-progress').textContent = `Selected ${selectedFunctionCards.length}/2`;
   
   const btn = document.getElementById('btn-confirm-cards');
   btn.disabled = selectedFunctionCards.length !== 2;
-  btn.textContent = selectedFunctionCards.length === 2 ? '确认选择' : `还需选 ${2 - selectedFunctionCards.length} 张`;
+  btn.textContent = selectedFunctionCards.length === 2 ? 'Confirm selection' : `Select ${2 - selectedFunctionCards.length} more`;
   
   functionCardTypes.forEach(type => {
     const card = document.getElementById(`func-${type}`);
@@ -279,7 +279,7 @@ function confirmCardSelection() {
   }
 }
 
-// ========== 游戏逻辑 ==========
+// ========== Game Logic ==========
 function startGame() {
   playDirection = 1;
   wishCardGiven = false;
@@ -289,7 +289,7 @@ function startGame() {
   currentPlayerIndex = 0;
   lastPlayerIndex = -1;
   
-  // 随机发牌策略
+  // Random dealing strategy
   distributeCards();
   
   pendingCard = null;
@@ -297,21 +297,21 @@ function startGame() {
   updateGameUI();
 }
 
-// 随机发牌函数
+// Random deal
 function distributeCards() {
   const playerNum = players.length;
-  const contentPerPlayer = 3; // 每人3张内容牌
-  const functionPerPlayer = 2; // 每人2张功能牌
+  const contentPerPlayer = 3; // 3 content cards per player
+  const functionPerPlayer = 2; // 2 function cards per player
   
-  // 创建内容牌池（心愿牌全场只有1张）
+  // Build content pool (only one wish card in game)
   let contentPool = [];
   const totalContentNeeded = playerNum * contentPerPlayer;
-  // 1张心愿牌，其余平分给分享牌和评价牌
+  // 1 wish card, rest split between share/evaluate
   const remainingContent = totalContentNeeded - 1;
   const shareCount = Math.ceil(remainingContent / 2);
   const evaluateCount = remainingContent - shareCount;
   
-  contentPool.push({ type: 'wish' }); // 唯一的心愿牌
+  contentPool.push({ type: 'wish' }); // single wish card
   for (let i = 0; i < shareCount; i++) {
     contentPool.push({ type: 'share' });
   }
@@ -319,15 +319,15 @@ function distributeCards() {
     contentPool.push({ type: 'evaluate' });
   }
   
-  // 创建功能牌池（万能牌全场只有1张）
+  // Build function pool (only one wild card in game)
   let functionPool = [];
   const totalFunctionNeeded = playerNum * functionPerPlayer;
-  // 1张万能牌，其余平分给反转、解释、回避牌
+  // 1 wild card, rest split among reverse/explain/avoid
   const remainingFunction = totalFunctionNeeded - 1;
   const perTypeCount = Math.floor(remainingFunction / 3);
   const extraCards = remainingFunction % 3;
   
-  functionPool.push({ type: 'wild' }); // 唯一的万能牌
+  functionPool.push({ type: 'wild' }); // single wild card
   for (let i = 0; i < perTypeCount + (extraCards > 0 ? 1 : 0); i++) {
     functionPool.push({ type: 'reverse' });
   }
@@ -338,33 +338,33 @@ function distributeCards() {
     functionPool.push({ type: 'avoid' });
   }
   
-  // 洗牌（Fisher-Yates算法确保随机性）
+  // Shuffle (Fisher-Yates)
   shuffleArray(contentPool);
   shuffleArray(functionPool);
   
-  // 为每个玩家发牌：每人3张内容牌 + 2张功能牌
+  // Deal each player: 3 content cards + 2 function cards
   players.forEach(player => {
     player.cards = [];
-    playerEmotions[player.name] = { emoji: '&#128566;', word: '等待' };
+    playerEmotions[player.name] = { emoji: '&#128566;', word: 'Waiting' };
     
-    // 发3张内容牌
+    // Deal 3 content cards
     for (let i = 0; i < contentPerPlayer && contentPool.length > 0; i++) {
       player.cards.push(contentPool.pop());
     }
     
-    // 发2张功能牌
+    // Deal 2 function cards
     for (let i = 0; i < functionPerPlayer && functionPool.length > 0; i++) {
       player.cards.push(functionPool.pop());
     }
     
-    // 打乱玩家手牌顺序，增加随机性
+    // Shuffle hand
     shuffleArray(player.cards);
   });
   
-  console.log('发牌完成，各玩家手牌:', players.map(p => ({name: p.name, cards: p.cards.map(c => c.type)})));
+  console.log('Dealing complete, player hands:', players.map(p => ({name: p.name, cards: p.cards.map(c => c.type)})));
 }
 
-// 洗牌函数（Fisher-Yates算法）
+// Shuffle (Fisher-Yates)
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -376,7 +376,7 @@ function shuffleArray(array) {
 function updateGameUI() {
   const current = players[currentPlayerIndex];
   
-  // 检查是否需要显示玩家切换动画
+  // Check if we should show the player switch animation
   if (lastPlayerIndex !== -1 && lastPlayerIndex !== currentPlayerIndex) {
     showTurnAnimation(current);
   }
@@ -400,34 +400,34 @@ function updateGameUI() {
   }
 }
 
-// 显示正常的操作区域（无待处理牌时）
+// Normal action area (no pending card)
 function showNormalActionArea() {
   document.getElementById('action-area').style.display = 'block';
-  document.getElementById('action-title').textContent = '请选择一张牌出牌';
+  document.getElementById('action-title').textContent = 'Choose a card to play';
   document.getElementById('question-display').style.display = 'none';
   
   const btnGroup = document.querySelector('#action-area .btn-group');
   btnGroup.innerHTML = `
-    <button class="btn btn-primary" id="btn-confirm" onclick="confirmPlay()" disabled>确认出牌</button>
-    <button class="btn btn-accent" onclick="nextTurn()">结束出牌</button>
+    <button class="btn btn-primary" id="btn-confirm" onclick="confirmPlay()" disabled>Confirm play</button>
+    <button class="btn btn-accent" onclick="nextTurn()">End turn</button>
   `;
 }
 
-// 显示玩家切换动画
+// Show player switch animation
 function showTurnAnimation(player) {
   const overlay = document.getElementById('turn-overlay');
   document.getElementById('turn-avatar').innerHTML = player.avatar;
   document.getElementById('turn-avatar').style.background = player.color;
-  document.getElementById('turn-text').textContent = `轮到 ${player.name} 出牌`;
+  document.getElementById('turn-text').textContent = `It is ${player.name}'s turn`;
   
   overlay.classList.add('show');
   
-  // 2秒后自动关闭
+  // Auto-close after 2 seconds
   setTimeout(() => {
     overlay.classList.remove('show');
   }, 2000);
   
-  // 点击任意位置关闭
+  // Click anywhere to close
   overlay.onclick = () => {
     overlay.classList.remove('show');
   };
@@ -436,13 +436,13 @@ function showTurnAnimation(player) {
 function updatePlayersBar() {
   const bar = document.getElementById('players-bar');
   bar.innerHTML = players.map((p, i) => {
-    const emotion = playerEmotions[p.name] || { emoji: '&#128566;', word: '等待' };
+    const emotion = playerEmotions[p.name] || { emoji: '&#128566;', word: 'Waiting' };
     return `
       <div class="player-chip ${!p.active ? 'inactive' : ''} ${i === currentPlayerIndex ? 'current' : ''}">
         <div class="chip-avatar" style="background: ${p.color}">${p.avatar}</div>
         <div class="chip-info">
           <div class="chip-name">${p.name}</div>
-          <div class="chip-status">${p.active ? p.cards.length + '张牌' : '旁听'}</div>
+          <div class="chip-status">${p.active ? p.cards.length + ' cards' : 'Spectating'}</div>
         </div>
         <div class="chip-emotion" title="${emotion.word}">${emotion.emoji}</div>
       </div>
@@ -468,24 +468,24 @@ function updateHandCards() {
 
 function selectCard(index) {
   if (pendingCard) {
-    alert('请先执行收到的牌');
+    alert('Please resolve the received card first.');
     return;
   }
   
   const current = players[currentPlayerIndex];
   const card = current.cards[index];
   
-  // 回避牌和反转牌不能主动出牌，只能在收到分享牌或评价牌时响应使用
+  // Avoid and Reverse cannot be played proactively
   if (card.type === 'avoid') {
-    alert('回避牌只能在收到分享牌或评价牌时使用，不能主动打出！');
+    alert('Avoid Card can only be used when you receive a Share or Evaluate card.');
     return;
   }
   if (card.type === 'reverse') {
-    alert('反转牌只能在收到分享牌或评价牌时使用，不能主动打出！');
+    alert('Reverse Card can only be used when you receive a Share or Evaluate card.');
     return;
   }
   
-  // 心愿牌是自己使用的，不是打给下家
+  // Wish card is self-use
   if (card.type === 'wish') {
     document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
     document.getElementById('card-' + index).classList.add('selected');
@@ -493,18 +493,18 @@ function selectCard(index) {
     
     const type = cardTypes[card.type];
     document.getElementById('action-area').style.display = 'block';
-    document.getElementById('action-title').textContent = `选中：${type.name}`;
-    document.getElementById('btn-confirm').textContent = '许下心愿';
+    document.getElementById('action-title').textContent = `Selected: ${type.name}`;
+    document.getElementById('btn-confirm').textContent = 'Make a wish';
     document.getElementById('btn-confirm').disabled = false;
     document.getElementById('btn-confirm').onclick = executeWishCard;
     
     document.getElementById('question-display').style.display = 'block';
     document.getElementById('question-type').textContent = type.name;
-    document.getElementById('question-text').textContent = '说出你的一个心愿，心愿牌将随机分给其他玩家';
+    document.getElementById('question-text').textContent = 'Say one wish. The wish card will be randomly passed to another player.';
     return;
   }
   
-  // 万能牌也是自己使用的
+  // Wild card is self-use
   if (card.type === 'wild') {
     document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
     document.getElementById('card-' + index).classList.add('selected');
@@ -512,14 +512,14 @@ function selectCard(index) {
     
     const type = cardTypes[card.type];
     document.getElementById('action-area').style.display = 'block';
-    document.getElementById('action-title').textContent = `选中：${type.name}`;
-    document.getElementById('btn-confirm').textContent = '使用万能牌';
+    document.getElementById('action-title').textContent = `Selected: ${type.name}`;
+    document.getElementById('btn-confirm').textContent = 'Use Wild Card';
     document.getElementById('btn-confirm').disabled = false;
     document.getElementById('btn-confirm').onclick = useWildCard;
     
     document.getElementById('question-display').style.display = 'block';
     document.getElementById('question-type').textContent = type.name;
-    document.getElementById('question-text').textContent = '选择变成：分享/评价/解释/反转/回避牌';
+    document.getElementById('question-text').textContent = 'Transform into: Share / Evaluate / Clarify / Reverse / Avoid';
     return;
   }
   
@@ -531,46 +531,46 @@ function selectCard(index) {
   const nextPlayer = getNextActivePlayer();
   
   document.getElementById('action-area').style.display = 'block';
-  document.getElementById('action-title').textContent = `选中：${type.name}`;
-  document.getElementById('btn-confirm').textContent = `发给 ${nextPlayer.name}`;
+  document.getElementById('action-title').textContent = `Selected: ${type.name}`;
+  document.getElementById('btn-confirm').textContent = `Send to ${nextPlayer.name}`;
   document.getElementById('btn-confirm').disabled = false;
   document.getElementById('btn-confirm').onclick = confirmPlay;
   
   document.getElementById('question-display').style.display = 'block';
   document.getElementById('question-type').textContent = type.name;
-  document.getElementById('question-text').textContent = `${nextPlayer.name} 将执行：${type.desc}`;
+  document.getElementById('question-text').textContent = `${nextPlayer.name} will: ${type.desc}`;
 }
 
-// 执行心愿牌（自己使用）
+// Execute Wish card (self-use)
 function executeWishCard() {
   if (selectedCard === null) return;
   
   const current = players[currentPlayerIndex];
   
-  // 移除心愿牌
+  // Remove wish card
   current.cards.splice(selectedCard, 1);
   selectedCard = null;
   
-  // 显示心愿输入弹窗
-  showAnswerModal('说出你的一个心愿', '心愿时刻', '&#127775;');
+  // Show wish input modal
+  showAnswerModal('Share one wish.', 'Wish Moment', '&#127775;');
 }
 
-// 使用万能牌（打开选择弹窗）
+// Use Wild card (open selection modal)
 function useWildCard() {
   if (selectedCard === null) return;
   
-  // 显示万能牌选择弹窗（显示场上所有可选牌类型）
+// Show wild card selection modal (all available types)
   showWildCardModal();
 }
 
-// 显示万能牌选择弹窗（固定的5种牌类型）
+// Show wild card modal (5 fixed types)
 function showWildCardModal() {
   selectedWildType = null;
   
-  // 万能牌可变成的固定牌类型（不包括心愿牌和万能牌本身）
+  // Fixed transform options (no wish or wild)
   const availableTypes = ['share', 'evaluate', 'explain', 'reverse', 'avoid'];
   
-  // 动态生成选项
+  // Render options
   const optionsContainer = document.querySelector('.wild-card-options');
   optionsContainer.innerHTML = availableTypes.map(type => {
     const cardInfo = cardTypes[type];
@@ -607,31 +607,31 @@ function showPendingCard() {
   const current = players[currentPlayerIndex];
   
   document.getElementById('action-area').style.display = 'block';
-  document.getElementById('action-title').textContent = `${pendingCard.fromPlayer} 给你的牌`;
-  document.getElementById('btn-confirm').textContent = '执行此牌';
+  document.getElementById('action-title').textContent = `${pendingCard.fromPlayer} sent you a card`;
+  document.getElementById('btn-confirm').textContent = 'Play this card';
   document.getElementById('btn-confirm').disabled = false;
   document.getElementById('btn-confirm').onclick = executePendingCard;
   
-  // 检查是否可以使用回避牌或反转牌（只有收到分享牌或评价牌时才能使用）
+  // Only allow Avoid/Reverse on Share or Evaluate
   const hasAvoidCard = current.cards.some(c => c.type === 'avoid');
   const hasReverseCard = current.cards.some(c => c.type === 'reverse');
   const canUseResponseCard = pendingCard.type === 'share' || pendingCard.type === 'evaluate';
   
-  // 更新按钮组，根据可用的响应牌显示按钮
+  // Update buttons based on available response cards
   const btnGroup = document.querySelector('#action-area .btn-group');
-  let buttonsHtml = '<button class="btn btn-primary" id="btn-confirm" onclick="executePendingCard()">执行此牌</button>';
+  let buttonsHtml = '<button class="btn btn-primary" id="btn-confirm" onclick="executePendingCard()">Play this card</button>';
   
   if (canUseResponseCard && hasReverseCard) {
-    buttonsHtml += '<button class="btn btn-secondary" onclick="useReverseCard()">使用反转牌</button>';
+    buttonsHtml += '<button class="btn btn-secondary" onclick="useReverseCard()">Use Reverse Card</button>';
   }
   if (canUseResponseCard && hasAvoidCard) {
-    buttonsHtml += '<button class="btn btn-secondary" onclick="useAvoidCard()">使用回避牌</button>';
+    buttonsHtml += '<button class="btn btn-secondary" onclick="useAvoidCard()">Use Avoid Card</button>';
   }
   
   btnGroup.innerHTML = buttonsHtml;
   
   if (pendingCard.type === 'share') {
-    // 只有在问题不存在时才生成新问题（反转牌时保留原问题）
+    // Only generate a new question if missing (keep original for Reverse)
     if (!pendingCard.question) {
       const q = getRandomQuestion();
       pendingCard.question = q.text;
@@ -643,11 +643,11 @@ function showPendingCard() {
   } else if (pendingCard.type === 'wish') {
     document.getElementById('question-display').style.display = 'block';
     document.getElementById('question-type').textContent = type.name;
-    document.getElementById('question-text').textContent = '说出你的一个心愿';
+    document.getElementById('question-text').textContent = 'Share one wish.';
   } else if (pendingCard.type === 'evaluate') {
     document.getElementById('question-display').style.display = 'block';
     document.getElementById('question-type').textContent = type.name;
-    document.getElementById('question-text').textContent = '评价一位在场的玩家';
+    document.getElementById('question-text').textContent = 'Evaluate a player at the table.';
   } else {
     document.getElementById('question-display').style.display = 'block';
     document.getElementById('question-type').textContent = type.name;
@@ -655,65 +655,65 @@ function showPendingCard() {
   }
 }
 
-// 使用反转牌 - 让出牌人执行这张牌
+// Use Reverse card - sender must answer
 function useReverseCard() {
   const current = players[currentPlayerIndex];
   const reverseIndex = current.cards.findIndex(c => c.type === 'reverse');
   
   if (reverseIndex === -1) {
-    alert('你没有反转牌了！');
+    alert('You do not have a Reverse Card.');
     return;
   }
   
-  // 移除反转牌（不添加新牌）
+  // Remove Reverse card (no new card added)
   current.cards.splice(reverseIndex, 1);
   
-  // 记录使用反转牌
-  addRecord(current.name, '反转牌', `将${cardTypes[pendingCard.type].name}反转给 ${pendingCard.fromPlayer}`);
+  // Record Reverse card usage
+  addRecord(current.name, 'Reverse Card', `Reversed ${cardTypes[pendingCard.type].name} to ${pendingCard.fromPlayer}`);
   
-  // 检查游戏是否结束
+  // Check for end game
   if (checkGameEnd()) return;
   
-  // 直接把牌反转给原出牌人，让他执行
+  // Send back to original sender
   const originalFromPlayerIndex = pendingCard.fromPlayerIndex;
   
-  // 保留原问题内容（重要：反转后原出牌人要回答同一个问题）
+  // Keep original question
   const savedQuestion = pendingCard.question;
   const savedTopicName = pendingCard.topicName;
   
-  // 更新 pendingCard，fromPlayer 变为使用反转牌的人
+  // Update pendingCard sender to current player
   pendingCard.fromPlayer = current.name;
   pendingCard.fromPlayerIndex = currentPlayerIndex;
   pendingCard.question = savedQuestion;
   pendingCard.topicName = savedTopicName;
   
-  // 切换到原出牌人
+  // Switch to original sender
   currentPlayerIndex = originalFromPlayerIndex;
   
-  // 更新UI，原出牌人需要执行被反转的牌
+  // Update UI
   updateGameUI();
 }
 
-// 使用回避牌
+// Use Avoid card
 function useAvoidCard() {
   const current = players[currentPlayerIndex];
   const avoidIndex = current.cards.findIndex(c => c.type === 'avoid');
   
   if (avoidIndex === -1) {
-    alert('你没有回避牌了！');
+    alert('You do not have an Avoid Card.');
     return;
   }
   
-  // 移除回避牌（不添加新牌）
+  // Remove Avoid card (no new card added)
   current.cards.splice(avoidIndex, 1);
   
-  // 记录使用回避牌
-  addRecord(current.name, '回避牌', '选择不回答这个问题');
+  // Record Avoid card usage
+  addRecord(current.name, 'Avoid Card', 'Chose not to answer this question.');
   
-  // 检查游戏是否结束
+  // Check for end game
   if (checkGameEnd()) return;
   
-  // 清除待处理牌，直接进入下一回合
+  // Clear pending card and continue
   pendingCard = null;
   nextTurn();
 }
@@ -723,13 +723,13 @@ function executePendingCard() {
   
   switch (pendingCard.type) {
     case 'share':
-      showAnswerModal(pendingCard.question, '分享时刻', '&#128172;');
+      showAnswerModal(pendingCard.question, 'Share Moment', '&#128172;');
       break;
     case 'evaluate':
       showEvaluateModal();
       break;
     case 'wish':
-      showAnswerModal('说出你的一个心愿', '心愿时刻', '&#127775;');
+      showAnswerModal('Share one wish.', 'Wish Moment', '&#127775;');
       break;
     case 'reverse':
       handleReverseCard();
@@ -738,28 +738,28 @@ function executePendingCard() {
       handleAvoidCard();
       break;
     case 'explain':
-      showAnswerModal('请补充或澄清你想说的内容', '解释时刻', '&#128226;');
+      showAnswerModal('Please add or clarify what you mean.', 'Clarify Moment', '&#128226;');
       break;
     case 'wild':
       handleWildCard();
       break;
     default:
-      showAnswerModal(`使用${cardTypes[pendingCard.type].name}`, cardTypes[pendingCard.type].name, cardTypes[pendingCard.type].icon);
+      showAnswerModal(`Use ${cardTypes[pendingCard.type].name}`, cardTypes[pendingCard.type].name, cardTypes[pendingCard.type].icon);
   }
 }
 
 function handleReverseCard() {
-  // 反转牌不能通过 executePendingCard 执行，只能通过 useReverseCard 响应使用
-  alert('反转牌只能在收到分享牌或评价牌时使用！');
+  // Reverse card cannot be executed here; only as a response
+  alert('Reverse Card can only be used when you receive a Share or Evaluate card.');
 }
 
 function handleAvoidCard() {
-  // 回避牌不能通过 executePendingCard 执行，只能通过 useAvoidCard 响应使用
-  alert('回避牌只能在收到分享牌或评价牌时使用！');
+  // Avoid card cannot be executed here; only as a response
+  alert('Avoid Card can only be used when you receive a Share or Evaluate card.');
 }
 
 function handleWildCard() {
-  // 显示万能牌选择弹窗
+  // Show wild card selection modal
   selectedWildType = null;
   document.querySelectorAll('.wild-option').forEach(opt => opt.classList.remove('selected'));
   document.getElementById('btn-wild-confirm').disabled = true;
@@ -779,34 +779,34 @@ function confirmWildSelection() {
   
   const current = players[currentPlayerIndex];
   
-  // 移除万能牌
+  // Remove Wild card
   current.cards.splice(selectedCard, 1);
   
-  // 记录使用万能牌
-  addRecord(current.name, '万能牌', `变成了${cardTypes[selectedWildType].name}`);
+  // Record Wild card use
+  addRecord(current.name, 'Wild Card', `Transformed into ${cardTypes[selectedWildType].name}`);
   
-  // 检查游戏是否结束
+  // Check for end game
   if (checkGameEnd()) return;
   
   selectedCard = null;
   
-  // 万能牌变形后自己执行（不是发给下家）
+  // After transform, Wild card is self-use
   switch (selectedWildType) {
     case 'share':
-      showAnswerModal(getRandomQuestion().text, '分享时刻', '&#128172;');
+      showAnswerModal(getRandomQuestion().text, 'Share Moment', '&#128172;');
       break;
     case 'evaluate':
-      // 评价牌：自己评价其他玩家
+      // Evaluate card: self-evaluate others
       showSelfEvaluateModal();
       break;
     case 'explain':
-      showAnswerModal('请补充或澄清你想说的内容', '解释时刻', '&#128226;');
+      showAnswerModal('Please add or clarify what you mean.', 'Clarify Moment', '&#128226;');
       break;
     case 'reverse':
     case 'avoid':
-      // 反转牌和回避牌是响应牌，变成后加入手牌
+      // Reverse/Avoid are response cards; add to hand
       current.cards.push({ type: selectedWildType });
-      alert(`万能牌已变成${cardTypes[selectedWildType].name}，已加入你的手牌！`);
+      alert(`Wild Card became ${cardTypes[selectedWildType].name} and was added to your hand.`);
       updateGameUI();
       break;
   }
@@ -814,22 +814,22 @@ function confirmWildSelection() {
   selectedWildType = null;
 }
 
-// 自己使用评价牌时的弹窗（选择要评价的玩家）
+// Evaluate modal when self-using Evaluate card
 function showSelfEvaluateModal() {
-  // 获取其他玩家列表
+  // Get other players
   const otherPlayers = players.filter((p, i) => i !== currentPlayerIndex && p.active);
   if (otherPlayers.length === 0) {
-    alert('没有其他玩家可以评价！');
+    alert('No other players to evaluate.');
     updateGameUI();
     return;
   }
   
-  // 随机选择一个玩家进行评价
+  // Pick a random player to evaluate
   const targetPlayer = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
   document.getElementById('evaluate-target-name').textContent = targetPlayer.name;
   document.getElementById('evaluate-content').value = '';
   
-  // 标记这是自己使用评价牌
+  // Mark as self-use
   pendingCard = { type: 'evaluate', fromPlayer: players[currentPlayerIndex].name, selfUse: true, targetPlayer: targetPlayer.name };
   
   document.getElementById('modal-evaluate').classList.add('show');
@@ -850,7 +850,7 @@ function confirmPlay() {
   current.cards.splice(selectedCard, 1);
   selectedCard = null;
   
-  // 检查游戏是否结束
+  // Check for end game
   if (checkGameEnd()) return;
   
   nextTurn();
@@ -865,7 +865,7 @@ function showAnswerModal(question, title, icon) {
 }
 
 function showEvaluateModal() {
-  const evaluateTarget = pendingCard ? pendingCard.fromPlayer : '某人';
+  const evaluateTarget = pendingCard ? pendingCard.fromPlayer : 'someone';
   document.getElementById('evaluate-target-name').textContent = evaluateTarget;
   document.getElementById('evaluate-content').value = '';
   document.getElementById('modal-evaluate').classList.add('show');
@@ -874,35 +874,34 @@ function showEvaluateModal() {
 function submitAnswer() {
   const content = document.getElementById('modal-input').value.trim();
   if (!content) {
-    alert('请输入内容');
+    alert('Please enter something.');
     return;
   }
   
-  // 停止语音录制
+  // Stop voice recording
   stopVoiceRecording();
   
   const current = players[currentPlayerIndex];
   const cardType = pendingCard ? pendingCard.type : 'share';
   const type = cardTypes[cardType];
   
-  // 判断是否是心愿牌（自己使用的情况，pendingCard为null）
-  const isWishFromSelf = !pendingCard && document.getElementById('modal-title').textContent === '心愿时刻';
+  // Check if this is a self-use Wish card
+  const isWishFromSelf = !pendingCard && document.getElementById('modal-title').textContent === 'Wish Moment';
   
-  // 判断是否是万能牌变形后自己执行（分享牌或解释牌）
+  // Check if Wild card transformed to Share or Clarify and is self-use
   const isWildSelfUse = !pendingCard && (
-    document.getElementById('modal-title').textContent === '分享时刻' ||
-    document.getElementById('modal-title').textContent === '解释时刻'
+    document.getElementById('modal-title').textContent === 'Share Moment' ||
+    document.getElementById('modal-title').textContent === 'Clarify Moment'
   );
   
   if (cardType === 'wish' || isWishFromSelf) {
     wishes.push({ player: current.name, wish: content });
-    addRecord(current.name, '心愿牌', `许下心愿：${content}`);
-    // 心愿牌使用后消耗掉，不再转赠给其他玩家
-    alert('心愿已记录！您的心愿将在游戏结束时的总结中展示。');
+    addRecord(current.name, 'Wish Card', `Made a wish: ${content}`);
+    // Wish card is consumed
+    alert('Wish recorded! It will appear in the end summary.');
   } else if (isWildSelfUse) {
-    // 万能牌变形后自己执行
     const modalTitle = document.getElementById('modal-title').textContent;
-    const cardName = modalTitle === '分享时刻' ? '分享牌' : '解释牌';
+    const cardName = modalTitle === 'Share Moment' ? 'Share Card' : 'Clarify Card';
     addRecord(current.name, cardName, content);
   } else {
     addRecord(current.name, type.name, content);
@@ -910,12 +909,12 @@ function submitAnswer() {
   
   document.getElementById('modal-answer').classList.remove('show');
   
-  // 触发AI分析
+  // Trigger AI analysis
   triggerAIAnalysis();
   
-  // 如果是自己使用的心愿牌或万能牌变形，直接更新UI
+  // If self-use Wish/Wild, update UI directly
   if (isWishFromSelf || isWildSelfUse) {
-    // 检查游戏是否结束
+    // Check for end game
     if (checkGameEnd()) return;
     updateGameUI();
   } else {
@@ -926,33 +925,33 @@ function submitAnswer() {
 function submitEvaluate() {
   const content = document.getElementById('evaluate-content').value.trim();
   if (!content) {
-    alert('请输入评价内容');
+    alert('Please enter your evaluation.');
     return;
   }
   
-  // 停止语音录制
+  // Stop voice recording
   stopVoiceRecording();
   
   const current = players[currentPlayerIndex];
   
-  // 判断是否是自己使用评价牌（万能牌变形后）
+  // Check if self-use Evaluate card (from Wild card)
   const isSelfUse = pendingCard && pendingCard.selfUse;
   
   if (isSelfUse) {
     const targetName = pendingCard.targetPlayer;
-    addRecord(current.name, '评价牌', `对${targetName}说：${content}`);
+    addRecord(current.name, 'Evaluate Card', `To ${targetName}: ${content}`);
     pendingCard = null;
   } else {
-    const evaluateTarget = pendingCard ? pendingCard.fromPlayer : '某人';
-    addRecord(current.name, '评价牌', `对${evaluateTarget}说：${content}`);
+    const evaluateTarget = pendingCard ? pendingCard.fromPlayer : 'someone';
+    addRecord(current.name, 'Evaluate Card', `To ${evaluateTarget}: ${content}`);
   }
   
   document.getElementById('modal-evaluate').classList.remove('show');
   
-  // 触发AI分析
+  // Trigger AI analysis
   triggerAIAnalysis();
   
-  // 如果是自己使用，直接更新UI
+  // If self-use, update UI directly
   if (isSelfUse) {
     if (checkGameEnd()) return;
     updateGameUI();
@@ -986,17 +985,17 @@ function nextTurn() {
 }
 
 function checkWishCardTrigger() {
-  // 心愿牌现在是自己使用后随机分给其他玩家，不再需要额外触发
+  // Wish card is self-use and already handled
   return;
 }
 
-// 检查游戏是否结束（任意玩家手牌打完）
+// Check end of game (any player empties hand)
 function checkGameEnd() {
   const emptyHandPlayer = players.find(p => p.active && p.cards.length === 0);
   if (emptyHandPlayer) {
-    // 显示游戏结束提示
+    // Show game end message
     setTimeout(() => {
-      alert(`${emptyHandPlayer.name} 的手牌已全部打完，游戏结束！\n即将查看对话总结...`);
+      alert(`${emptyHandPlayer.name} has no cards left. Game over!\nOpening the conversation summary...`);
       goToSummary();
     }, 500);
     return true;
@@ -1012,7 +1011,7 @@ function addRecord(playerName, cardName, content) {
 function updateRecords() {
   const container = document.getElementById('records-list');
   if (records.length === 0) {
-    container.innerHTML = '<div class="empty-records">还没有对话记录，出牌开始吧！</div>';
+    container.innerHTML = '<div class="empty-records">No records yet. Start playing!</div>';
     return;
   }
   
@@ -1027,7 +1026,7 @@ function updateRecords() {
   `).join('');
 }
 
-// ========== AI 分析系统 ==========
+// ========== AI Analysis ==========
 async function callAPI(messages) {
   try {
     const response = await fetch(API_URL, {
@@ -1042,13 +1041,13 @@ async function callAPI(messages) {
     });
     
     if (!response.ok) {
-      throw new Error(`API错误: ${response.status}`);
+      throw new Error(`API error: ${response.status}`);
     }
     
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
-    console.error('API调用失败:', error);
+    console.error('API call failed:', error);
     return null;
   }
 }
@@ -1057,35 +1056,35 @@ async function triggerAIAnalysis() {
   if (analysisInProgress || records.length === 0) return;
   analysisInProgress = true;
   
-  document.getElementById('ai-insight').innerHTML = '<div class="ai-loading"><div class="spinner"></div><span>AI 分析中...</span></div>';
+  document.getElementById('ai-insight').innerHTML = '<div class="ai-loading"><div class="spinner"></div><span>AI analyzing...</span></div>';
   
   const recentRecords = records.slice(-10).map(r => `${r.player}(${r.card}): ${r.content}`).join('\n');
-  const playerNames = players.map(p => p.name).join('、');
+  const playerNames = players.map(p => p.name).join(', ');
   
-  const prompt = `你是一个专业的家庭对话分析师。请分析以下家庭对话记录，并完成两个任务：
+  const prompt = `You are a professional family conversation analyst. Analyze the dialogue below and complete two tasks.
 
-对话参与者：${playerNames}
+Participants: ${playerNames}
 
-最近的对话记录：
+Recent dialogue:
 ${recentRecords}
 
-任务1：为每位参与者分析当前的心理状态，用一个词概括（如：开心、感动、思考、紧张、放松、期待、感恩、犹豫等）。
+Task 1: For each participant, summarize their current emotional state in one word (e.g., happy, touched, thoughtful, nervous, relaxed, hopeful, grateful, hesitant).
 
-任务2：给出一段简短的对话洞察（2-3句话），以一种幽默、轻松的方式，说明当前对话的氛围和值得关注的点。
+Task 2: Provide a short insight (2-3 sentences) in a light, humorous tone about the current vibe and what is worth noticing.
 
-请严格按以下JSON格式回复（不要有其他内容）：
+Reply strictly in this JSON format (no extra text):
 {
   "emotions": {
-    "玩家名1": {"emoji": "表情符号", "word": "一个词"},
-    "玩家名2": {"emoji": "表情符号", "word": "一个词"}
+    "Player1": {"emoji": "emoji", "word": "one word"},
+    "Player2": {"emoji": "emoji", "word": "one word"}
   },
-  "insight": "对话洞察内容"
+  "insight": "insight text"
 }
 
-表情符号参考：开心用&#128522;，感动用&#129402;，思考用&#129300;，紧张用&#128556;，放松用&#128524;，期待用&#129321;，感恩用&#128591;，犹豫用&#128533;`;
+Emoji references: happy &#128522;, touched &#129402;, thoughtful &#129300;, nervous &#128556;, relaxed &#128524;, hopeful &#129321;, grateful &#128591;, hesitant &#128533;`;
   
   const messages = [
-    { role: "system", content: "你是一个专业的家庭对话分析师，擅长分析家庭成员之间的对话，理解每个人的情绪和心理状态。请始终用JSON格式回复。" },
+    { role: "system", content: "You are a professional family conversation analyst. Always reply in JSON." },
     { role: "user", content: prompt }
   ];
   
@@ -1093,12 +1092,12 @@ ${recentRecords}
   
   if (result) {
     try {
-      // 尝试解析JSON
+      // Try to parse JSON
       const jsonMatch = result.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const analysis = JSON.parse(jsonMatch[0]);
         
-        // 更新玩家情绪
+        // Update player emotions
         if (analysis.emotions) {
           Object.keys(analysis.emotions).forEach(name => {
             if (playerEmotions[name]) {
@@ -1109,7 +1108,7 @@ ${recentRecords}
           updatePlayersBar();
         }
         
-        // 更新洞察
+        // Update insight
         if (analysis.insight) {
           document.getElementById('ai-insight').textContent = analysis.insight;
         }
@@ -1117,11 +1116,11 @@ ${recentRecords}
         lastAIAnalysis = analysis;
       }
     } catch (e) {
-      console.error('解析AI响应失败:', e);
-      document.getElementById('ai-insight').textContent = '对话分析中，请继续游戏...';
+      console.error('Failed to parse AI response:', e);
+      document.getElementById('ai-insight').textContent = 'Analyzing the conversation. Please keep playing...';
     }
   } else {
-    document.getElementById('ai-insight').textContent = '对话进行中，AI正在观察...';
+    document.getElementById('ai-insight').textContent = 'Conversation in progress. AI is observing...';
   }
   
   analysisInProgress = false;
@@ -1130,7 +1129,7 @@ ${recentRecords}
 function updatePlayerEmotionsDisplay() {
   const container = document.getElementById('player-emotions');
   container.innerHTML = players.map(p => {
-    const emotion = playerEmotions[p.name] || { emoji: '&#128566;', word: '等待' };
+    const emotion = playerEmotions[p.name] || { emoji: '&#128566;', word: 'Waiting' };
     return `
       <div class="player-emotion-card">
         <div class="player-emotion-name">${p.name}</div>
@@ -1141,63 +1140,63 @@ function updatePlayerEmotionsDisplay() {
   }).join('');
 }
 
-// ========== AI 总结生成 ==========
+// ========== AI Summary ==========
 async function generateAISummary() {
   const container = document.getElementById('summary-content');
-  container.innerHTML = '<div class="ai-loading"><div class="spinner"></div><span>AI 正在生成总结...</span></div>';
+  container.innerHTML = '<div class="ai-loading"><div class="spinner"></div><span>AI is generating the summary...</span></div>';
   
   if (records.length === 0) {
-    container.innerHTML = '<p style="text-align:center;color:#666;">还没有对话记录，先玩几轮吧！</p>';
+    container.innerHTML = '<p style="text-align:center;color:#666;">No records yet. Play a few rounds first.</p>';
     return;
   }
   
   const allRecords = records.map(r => `${r.player}(${r.card}): ${r.content}`).join('\n');
-  const playerNames = players.map(p => p.name).join('、');
-  const wishList = wishes.map(w => `${w.player}的心愿：${w.wish}`).join('\n') || '暂无心愿';
+  const playerNames = players.map(p => p.name).join(', ');
+  const wishList = wishes.map(w => `${w.player}'s wish: ${w.wish}`).join('\n') || 'No wishes yet';
   
-  const prompt = `你是一个专业的家庭对话分析师和心理咨询师。请为这次深度对话游戏生成一份温暖、有洞察力的总结报告。
+  const prompt = `You are a professional family conversation analyst and counselor. Create a warm, insightful summary of this deep conversation game.
 
-对话参与者：${playerNames}
-对话轮次：${round}轮
-心愿池：
+Participants: ${playerNames}
+Rounds played: ${round}
+Wish pool:
 ${wishList}
 
-完整对话记录：
+Full dialogue:
 ${allRecords}
 
-请生成一份包含以下四段内容的总结报告，不要出现'**'之间的标题内容：
+Write a summary with the following four sections. Do not include the section titles themselves (the titles are only for guidance):
 
-**对话概览**简要描述这次对话的整体情况（2-3句话）
+Conversation Overview: Briefly describe the overall conversation (2-3 sentences).
 
-**每位参与者分析**
-   - 分析每位参与者在对话中展现的特点
-   - 他们表达的核心情感和想法
-   - 给每个人一句温暖的评价
+Per-Participant Analysis:
+- The traits each participant showed in the conversation
+- The core emotions and thoughts they expressed
+- One warm affirmation for each person
 
-**家庭关系洞察**
-   - 从对话中发现的家庭关系特点
-   - 值得珍惜的互动瞬间
-   - 可能需要更多关注的方面
+Family Relationship Insights:
+- Relationship patterns observed
+- Moments worth cherishing
+- Areas that may need more care
 
-**鼓励与建议**
-   - 给这个家庭的真诚鼓励
-   - 后续可以尝试的沟通建议
+Encouragement & Suggestions:
+- Genuine encouragement for the family
+- Communication ideas to try next
 
-请用温暖、真诚、有洞察力的语气来写，让参与者感受到被理解和支持。`;
+Use a warm, sincere, insightful tone so participants feel understood and supported.`;
   
   const messages = [
-    { role: "system", content: "你是一个专业的家庭对话分析师和心理咨询师，你的任务是为家庭对话生成温暖、有洞察力的总结报告。你的语言风格温暖真诚，善于发现每个人的闪光点，给予肯定和鼓励。" },
+    { role: "system", content: "You are a professional family conversation analyst and counselor. Produce warm, insightful summaries with affirmations." },
     { role: "user", content: prompt }
   ];
   
   const result = await callAPI(messages);
   
-  // 生成心愿池HTML（放在总结上方）
+  // Build wish pool HTML (above summary)
   const wishPoolHtml = wishes.length > 0 
     ? `<div class="wish-pool-card">
-        <div class="wish-pool-title">&#127775; 心愿池</div>
+        <div class="wish-pool-title">&#127775; Wish Pool</div>
         <div class="wish-pool-list">
-          ${wishes.map(w => `<div class="wish-item">&#127775; ${w.player}的心愿：${w.wish}</div>`).join('')}
+          ${wishes.map(w => `<div class="wish-item">&#127775; ${w.player}'s wish: ${w.wish}</div>`).join('')}
         </div>
       </div>`
     : '';
@@ -1207,40 +1206,40 @@ ${allRecords}
       ${wishPoolHtml}
       
       <div class="summary-card">
-        <div class="summary-title">对话总结</div>
+        <div class="summary-title">Conversation Summary</div>
         <div class="summary-section">
           <div class="ai-summary-text">${result.replace(/\n/g, '<br>')}</div>
         </div>
       </div>
       
       <div class="encouragement-card">
-        <div class="encouragement-title">&#127775; 本次对话数据</div>
+        <div class="encouragement-title">&#127775; Session Stats</div>
         <div class="encouragement-text">
-          参与人数：${players.length} 人<br>
-          对话轮次：${round} 轮<br>
-          发言记录：${records.length} 条<br>
-          收集心愿：${wishes.length} 个
+          Players: ${players.length}<br>
+          Rounds: ${round}<br>
+          Records: ${records.length}<br>
+          Wishes: ${wishes.length}
         </div>
       </div>
     `;
   } else {
-    // 生成本地总结
+    // Build local summary
     container.innerHTML = generateLocalSummary();
   }
 }
 
 function generateLocalSummary() {
   const emotionSummary = players.map(p => {
-    const emotion = playerEmotions[p.name] || { emoji: '&#128566;', word: '等待' };
-    return `<div>${p.avatar} ${p.name}：${emotion.emoji} ${emotion.word}</div>`;
+    const emotion = playerEmotions[p.name] || { emoji: '&#128566;', word: 'Waiting' };
+    return `<div>${p.avatar} ${p.name}: ${emotion.emoji} ${emotion.word}</div>`;
   }).join('');
   
-  // 心愿池放在最上方
+  // Wish pool on top
   const wishPoolHtml = wishes.length > 0 
     ? `<div class="wish-pool-card">
-        <div class="wish-pool-title">&#127775; 心愿池</div>
+        <div class="wish-pool-title">&#127775; Wish Pool</div>
         <div class="wish-pool-list">
-          ${wishes.map(w => `<div class="wish-item">&#127775; ${w.player}的心愿：${w.wish}</div>`).join('')}
+          ${wishes.map(w => `<div class="wish-item">&#127775; ${w.player}'s wish: ${w.wish}</div>`).join('')}
         </div>
       </div>`
     : '';
@@ -1249,27 +1248,27 @@ function generateLocalSummary() {
     ${wishPoolHtml}
     
     <div class="summary-card">
-      <div class="summary-title">&#128202; 本次对话总结</div>
+      <div class="summary-title">&#128202; Session Summary</div>
       
       <div class="summary-section">
-        <div class="summary-section-title">&#127919; 对话概览</div>
+        <div class="summary-section-title">&#127919; Conversation Overview</div>
         <div class="summary-list">
-          本次对话共进行了 ${round} 轮，${players.length} 位家庭成员参与了 ${records.length} 次分享。
+          This session had ${round} rounds. ${players.length} players contributed ${records.length} entries.
         </div>
       </div>
       
       <div class="summary-section">
-        <div class="summary-section-title">&#128173; 参与者状态</div>
+        <div class="summary-section-title">&#128173; Participant Status</div>
         <div class="summary-list">${emotionSummary}</div>
       </div>
     </div>
     
     <div class="encouragement-card">
-      <div class="encouragement-title">&#127775; 继续前进</div>
+      <div class="encouragement-title">&#127775; Keep Going</div>
       <div class="encouragement-text">
-        感谢你们愿意坐下来，用这种方式进行深度对话。<br><br>
-        每一次真诚的分享，都是家庭关系更进一步的契机。<br><br>
-        希望今天的对话能够成为你们美好回忆的一部分！
+        Thank you for taking the time to connect in this way.<br><br>
+        Every honest share is a chance to strengthen your relationships.<br><br>
+        Hope today becomes a warm memory you can return to.
       </div>
     </div>
   `;
@@ -1287,17 +1286,17 @@ function restartGame() {
   initPlayerInputs();
 }
 
-// ========== 语音识别功能 ==========
+// ========== Voice Recognition ==========
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let voiceRecognition = null;
 let isVoiceRecording = false;
-let currentVoiceTarget = null; // 'answer' 或 'evaluate'
+let currentVoiceTarget = null; // 'answer' or 'evaluate'
 
-// 初始化语音识别
+// Initialize voice recognition
 function initVoiceRecognition() {
   if (!SpeechRecognition) {
-    console.log('浏览器不支持语音识别');
-    // 隐藏语音按钮
+    console.log('Speech recognition not supported');
+    // Hide voice buttons
     document.querySelectorAll('.voice-btn').forEach(btn => {
       btn.style.display = 'none';
     });
@@ -1307,7 +1306,7 @@ function initVoiceRecognition() {
   voiceRecognition = new SpeechRecognition();
   voiceRecognition.continuous = true;
   voiceRecognition.interimResults = true;
-  voiceRecognition.lang = 'zh-CN';
+  voiceRecognition.lang = 'en-US';
   
   voiceRecognition.onstart = function() {
     isVoiceRecording = true;
@@ -1316,7 +1315,7 @@ function initVoiceRecognition() {
   
   voiceRecognition.onend = function() {
     if (isVoiceRecording) {
-      // 如果还在录音状态，自动重新开始
+      // If still recording, auto-restart
       try {
         voiceRecognition.start();
       } catch (e) {
@@ -1340,28 +1339,28 @@ function initVoiceRecognition() {
       }
     }
     
-    // 获取目标输入框
+    // Get target input
     const targetInput = currentVoiceTarget === 'answer' 
       ? document.getElementById('modal-input')
       : document.getElementById('evaluate-content');
     
     if (targetInput) {
-      // 追加最终识别的文字
+      // Append final text
       if (finalTranscript) {
         targetInput.value += finalTranscript;
       }
       
-      // 显示临时识别状态
+      // Show interim status
       const statusEl = document.getElementById('voice-status-' + currentVoiceTarget);
       if (statusEl && interimTranscript) {
-        statusEl.textContent = '识别中: ' + interimTranscript;
+        statusEl.textContent = 'Listening: ' + interimTranscript;
         statusEl.classList.add('recording');
       }
     }
   };
   
   voiceRecognition.onerror = function(event) {
-    console.error('语音识别错误:', event.error);
+    console.error('Speech recognition error:', event.error);
     
     const statusEl = currentVoiceTarget 
       ? document.getElementById('voice-status-' + currentVoiceTarget)
@@ -1369,34 +1368,34 @@ function initVoiceRecognition() {
     
     switch(event.error) {
       case 'no-speech':
-        // 静默处理
+        // Silent
         break;
       case 'audio-capture':
-        if (statusEl) statusEl.textContent = '未检测到麦克风';
+        if (statusEl) statusEl.textContent = 'Microphone not detected.';
         stopVoiceRecording();
         break;
       case 'not-allowed':
-        if (statusEl) statusEl.textContent = '请允许使用麦克风';
+        if (statusEl) statusEl.textContent = 'Please allow microphone access.';
         stopVoiceRecording();
         break;
       default:
-        if (statusEl) statusEl.textContent = '识别出错，请重试';
+        if (statusEl) statusEl.textContent = 'Recognition failed. Please try again.';
         stopVoiceRecording();
     }
   };
 }
 
-// 切换语音输入
+// Toggle voice input
 function toggleVoiceInput(target) {
   if (!SpeechRecognition) {
-    alert('您的浏览器不支持语音识别，请使用 Chrome、Edge 或 Safari 浏览器。');
+    alert('Your browser does not support speech recognition. Please use Chrome, Edge, or Safari.');
     return;
   }
   
   if (isVoiceRecording && currentVoiceTarget === target) {
     stopVoiceRecording();
   } else {
-    // 如果正在录其他的，先停止
+    // Stop other target first
     if (isVoiceRecording) {
       stopVoiceRecording();
     }
@@ -1404,7 +1403,7 @@ function toggleVoiceInput(target) {
   }
 }
 
-// 开始语音录制
+// Start voice recording
 function startVoiceRecording(target) {
   if (!voiceRecognition) {
     initVoiceRecognition();
@@ -1414,18 +1413,18 @@ function startVoiceRecording(target) {
   
   const statusEl = document.getElementById('voice-status-' + target);
   if (statusEl) {
-    statusEl.textContent = '正在聆听...';
+    statusEl.textContent = 'Listening...';
     statusEl.classList.add('recording');
   }
   
   try {
     voiceRecognition.start();
   } catch (e) {
-    console.error('启动语音识别失败:', e);
+    console.error('Failed to start recognition:', e);
   }
 }
 
-// 停止语音录制
+// Stop voice recording
 function stopVoiceRecording() {
   isVoiceRecording = false;
   currentVoiceTarget = null;
@@ -1434,14 +1433,14 @@ function stopVoiceRecording() {
     try {
       voiceRecognition.stop();
     } catch (e) {
-      console.error('停止语音识别失败:', e);
+      console.error('Failed to stop recognition:', e);
     }
   }
   
   updateVoiceUI(false);
 }
 
-// 更新语音UI状态
+// Update voice UI state
 function updateVoiceUI(recording) {
   ['answer', 'evaluate'].forEach(target => {
     const btn = document.getElementById('voice-btn-' + target);
@@ -1450,7 +1449,7 @@ function updateVoiceUI(recording) {
     if (recording && currentVoiceTarget === target) {
       if (btn) btn.classList.add('recording');
       if (status) {
-        status.textContent = '正在聆听...';
+        status.textContent = 'Listening...';
         status.classList.add('recording');
       }
     } else {
@@ -1463,7 +1462,7 @@ function updateVoiceUI(recording) {
   });
 }
 
-// ========== 初始化 ==========
+// ========== Init ==========
 document.addEventListener('DOMContentLoaded', function() {
   initPlayerInputs();
   updatePlayerEmotionsDisplay();
