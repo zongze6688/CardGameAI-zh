@@ -27,5 +27,7 @@ cd CardGame
 docker build -t cardgame .
 docker run -p 8080:8080 cardgame
 ```
+## To Mention
+you have to replace the <your-api-key> with your real modelscope-api-key in server.py. If you don`t have one, contact the author for a free api-key
 
 License: MIT
