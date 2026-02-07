@@ -22,7 +22,7 @@ DEFAULT_PAGE = "/card-game-modular.html"
 
 # ModelScope API config
 MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions"
-MODELSCOPE_API_KEY = "ms-cb781c90-9f17-40b1-ab90-9938ef0bed3f"
+MODELSCOPE_API_KEY = "<your-api-key>"
 
 
 class GameRequestHandler(http.server.SimpleHTTPRequestHandler):
